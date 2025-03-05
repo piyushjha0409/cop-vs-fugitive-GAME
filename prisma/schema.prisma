@@ -1,0 +1,43 @@
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model City {
+  id        Int      @id @default(autoincrement())
+  name      String
+  distance  Int
+  selections CopSelection[] // One city can have many selections
+}
+
+model Vehicle {
+  id        Int      @id @default(autoincrement())
+  kind      String
+  range     Int
+  count     Int
+  selections CopSelection[] // One vehicle can have many selections
+}
+
+model Cop {
+  id        Int      @id @default(autoincrement())
+  name      String
+  selections CopSelection[] // One cop can have only one selection (enforced by unique constraint)
+}
+
+model CopSelection {
+  id        Int      @id @default(autoincrement())
+  copId     Int      // Foreign key to Cop
+  cityId    Int      // Foreign key to City
+  vehicleId Int      // Foreign key to Vehicle
+  cop       Cop      @relation(fields: [copId], references: [id]) // Required relationship
+  city      City     @relation(fields: [cityId], references: [id]) // Required relationship
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id]) // Required relationship
+
+  // Ensure each cop can only have one selection (one city and one vehicle)
+  @@unique([copId])
+}
