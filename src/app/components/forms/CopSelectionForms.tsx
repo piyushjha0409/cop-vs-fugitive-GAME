@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import type { City, Vehicle } from "@/types/types"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -19,6 +18,7 @@ interface CopSelectionFormProps {
   selectedCities: number[]
   selectedVehicles: number[]
   onSelect: (copId: number, cityId: number, vehicleId: number) => void
+  isDisabled: boolean // Add this prop to disable the form
 }
 
 export default function CopSelectionForm({
@@ -28,6 +28,7 @@ export default function CopSelectionForm({
   selectedCities,
   selectedVehicles,
   onSelect,
+  isDisabled,
 }: CopSelectionFormProps) {
   const [cityId, setCityId] = useState<number | null>(null)
   const [vehicleId, setVehicleId] = useState<number | null>(null)
@@ -45,6 +46,9 @@ export default function CopSelectionForm({
     e.preventDefault()
     if (cityId && vehicleId) {
       onSelect(copId, cityId, vehicleId)
+      // Reset the form state after submission
+      setCityId(null)
+      setVehicleId(null)
     }
   }
 
@@ -61,6 +65,14 @@ export default function CopSelectionForm({
         return "/placeholder.svg?height=200&width=200"
     }
   }
+
+  // Disable the form if the cop has already made a selection
+  useEffect(() => {
+    if (isDisabled) {
+      setCityId(null)
+      setVehicleId(null)
+    }
+  }, [isDisabled])
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -84,15 +96,20 @@ export default function CopSelectionForm({
               <h3 className="font-medium text-slate-200">Select City to Search:</h3>
             </div>
 
-            <RadioGroup value={cityId?.toString()} onValueChange={(value) => setCityId(Number.parseInt(value))}>
+            <RadioGroup
+              value={cityId?.toString()}
+              onValueChange={(value) => setCityId(Number.parseInt(value))}
+              disabled={isDisabled} // Disable the radio group if the form is disabled
+            >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {cities.map((city) => {
-                  const isDisabled = selectedCities.includes(city.id)
+                  const isCityDisabled = selectedCities.includes(city.id) || isDisabled
+                  const isSelectedByAnotherCop = selectedCities.includes(city.id) && cityId !== city.id
                   return (
                     <div key={city.id} className="relative">
                       <Card
                         className={`border border-slate-700 transition-all ${
-                          isDisabled
+                          isCityDisabled
                             ? "opacity-50 bg-slate-800/30"
                             : cityId === city.id
                               ? "bg-slate-700/50 border-blue-500"
@@ -102,12 +119,12 @@ export default function CopSelectionForm({
                         <CardContent className="p-3">
                           <Label
                             htmlFor={`city-${copId}-${city.id}`}
-                            className={`flex items-start gap-3 cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
+                            className={`flex items-start gap-3 cursor-pointer ${isCityDisabled ? "cursor-not-allowed" : ""}`}
                           >
                             <RadioGroupItem
                               id={`city-${copId}-${city.id}`}
                               value={city.id.toString()}
-                              disabled={isDisabled}
+                              disabled={isCityDisabled}
                               className="mt-1"
                             />
                             <div>
@@ -117,9 +134,9 @@ export default function CopSelectionForm({
                           </Label>
                         </CardContent>
                       </Card>
-                      {isDisabled && (
+                      {isSelectedByAnotherCop && (
                         <Badge className="absolute top-2 right-2 bg-red-900/60 text-red-200 border-red-800">
-                          Assigned
+                          {isDisabled ? "Assigned" : "Unavailable"}
                         </Badge>
                       )}
                     </div>
@@ -141,15 +158,16 @@ export default function CopSelectionForm({
                 <RadioGroup
                   value={vehicleId?.toString()}
                   onValueChange={(value) => setVehicleId(Number.parseInt(value))}
+                  disabled={isDisabled} // Disable the radio group if the form is disabled
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {availableVehicles.map((vehicle) => {
-                      const isDisabled = selectedVehicles.includes(vehicle.id)
+                      const isVehicleDisabled = selectedVehicles.includes(vehicle.id) || isDisabled
                       return (
                         <div key={vehicle.id} className="relative">
                           <Card
                             className={`border border-slate-700 transition-all ${
-                              isDisabled
+                              isVehicleDisabled
                                 ? "opacity-50 bg-slate-800/30"
                                 : vehicleId === vehicle.id
                                   ? "bg-slate-700/50 border-blue-500"
@@ -159,12 +177,12 @@ export default function CopSelectionForm({
                             <CardContent className="p-3">
                               <Label
                                 htmlFor={`vehicle-${copId}-${vehicle.id}`}
-                                className={`flex items-start gap-3 cursor-pointer ${isDisabled ? "cursor-not-allowed" : ""}`}
+                                className={`flex items-start gap-3 cursor-pointer ${isVehicleDisabled ? "cursor-not-allowed" : ""}`}
                               >
                                 <RadioGroupItem
                                   id={`vehicle-${copId}-${vehicle.id}`}
                                   value={vehicle.id.toString()}
-                                  disabled={isDisabled}
+                                  disabled={isVehicleDisabled}
                                   className="mt-1"
                                 />
                                 <div>
@@ -175,9 +193,9 @@ export default function CopSelectionForm({
                               </Label>
                             </CardContent>
                           </Card>
-                          {isDisabled && (
+                          {isVehicleDisabled && (
                             <Badge className="absolute top-2 right-2 bg-red-900/60 text-red-200 border-red-800">
-                              In Use
+                              {isDisabled ? "Assigned" : "In Use"}
                             </Badge>
                           )}
                         </div>
@@ -204,15 +222,16 @@ export default function CopSelectionForm({
         <Button
           type="submit"
           className={`${
-            !cityId || !vehicleId ? "bg-slate-700 text-slate-300" : "bg-green-600 hover:bg-green-700 text-white"
+            !cityId || !vehicleId || isDisabled
+              ? "bg-slate-700 text-slate-300"
+              : "bg-green-600 hover:bg-green-700 text-white"
           } px-6 py-2 rounded-md transition-all`}
-          disabled={!cityId || !vehicleId}
+          disabled={!cityId || !vehicleId || isDisabled}
         >
-          {cityId && vehicleId && <CheckCircle className="mr-2 h-4 w-4" />}
-          Deploy Officer {copId}
+          {cityId && vehicleId && !isDisabled && <CheckCircle className="mr-2 h-4 w-4" />}
+          {isDisabled ? "Officer Deployed" : `Deploy Officer ${copId}`}
         </Button>
       </div>
     </form>
   )
 }
-

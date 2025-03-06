@@ -61,7 +61,7 @@ export default function Game() {
     cityId: number,
     vehicleId: number
   ) => {
-    // Check if the city has already been selected
+    // Check if the city has already been selected by another cop
     if (selectedCities.includes(cityId)) {
       alert("This city has already been selected by another cop.");
       return;
@@ -92,6 +92,28 @@ export default function Game() {
       return;
     }
 
+    // Check if this cop has already made a selection
+    const existingSelectionIndex = copSelections.findIndex(
+      (selection) => selection.copId === copId
+    );
+
+    if (existingSelectionIndex !== -1) {
+      // If the cop has already made a selection, update it
+      const updatedSelections = [...copSelections];
+      updatedSelections[existingSelectionIndex] = {
+        copId,
+        city: selectedCity,
+        vehicle: selectedVehicle,
+      };
+      setCopSelections(updatedSelections);
+    } else {
+      // If this is the cop's first selection, add it to the list
+      setCopSelections([
+        ...copSelections,
+        { copId, city: selectedCity, vehicle: selectedVehicle },
+      ]);
+    }
+
     // Update the selected city and vehicle lists
     setSelectedCities([...selectedCities, cityId]);
     setSelectedVehicles([...selectedVehicles, vehicleId]);
@@ -103,12 +125,6 @@ export default function Game() {
         : vehicle
     );
     setVehicles(updatedVehicles);
-
-    // Add the selection to the copSelections list
-    setCopSelections([
-      ...copSelections,
-      { copId, city: selectedCity, vehicle: selectedVehicle },
-    ]);
 
     // Move to the next cop
     setCurrentCop((prev) => prev + 1);
@@ -136,6 +152,13 @@ export default function Game() {
     setSelectedCities([]);
     setSelectedVehicles([]);
     setGameStatus("idle");
+
+    // Reset vehicle counts (if needed)
+    const resetVehicles = vehicles.map((vehicle) => ({
+      ...vehicle,
+      count: 1, // Reset to initial count
+    }));
+    setVehicles(resetVehicles);
   };
 
   // Evaluate the result
@@ -256,7 +279,8 @@ export default function Game() {
                     selectedCities={selectedCities}
                     selectedVehicles={selectedVehicles}
                     onSelect={handleCopSelection}
-                  />
+                    isDisabled={copSelections.some((selection) => selection.copId === 1)}
+                    />
                 </CardContent>
               </Card>
             )}
@@ -282,14 +306,15 @@ export default function Game() {
                     selectedCities={selectedCities}
                     selectedVehicles={selectedVehicles}
                     onSelect={handleCopSelection}
-                  />
+                    isDisabled={copSelections.some((selection) => selection.copId === 2)}
+                    />
                 </CardContent>
               </Card>
             )}
 
             {/* Cop 3 Form */}
             {currentCop >= 3 && (
-              <Card
+                <Card
                 className={`bg-slate-800/50 border-slate-700 ${
                   currentCop === 3 ? "ring-2 ring-blue-500" : ""
                 }`}
@@ -308,6 +333,7 @@ export default function Game() {
                     selectedCities={selectedCities}
                     selectedVehicles={selectedVehicles}
                     onSelect={handleCopSelection}
+                    isDisabled={copSelections.some((selection) => selection.copId === 3)}
                   />
                 </CardContent>
               </Card>
