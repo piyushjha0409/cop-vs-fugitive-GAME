@@ -48,7 +48,7 @@ export async function determineCaptureResult(
 ) {
   for (const selection of copSelections) {
     if (selection.city.id === fugitiveLocation.id) {
-      return `Cop ${selection.cop.name} successfully captured the fugitive in ${selection.city.name}!`;
+      return `Cop ${selection.copId} successfully captured the fugitive in ${selection.city.name}!`;
     }
   }
   return "The fugitive escaped! No cop was able to capture them.";
